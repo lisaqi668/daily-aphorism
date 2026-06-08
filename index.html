@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>日签 · 每日一言</title>
+  <style>
+    * { margin:0; padding:0; box-sizing: border-box; }
+
+    body {
+      font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      min-height: 100vh;
+      background: #0f0f1a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 580px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 上方风景区 */
+    .hero {
+      position: relative;
+      flex: 1;
+      min-height: 65vh;
+      overflow: hidden;
+      border-radius: 0 0 28px 28px;
+    }
+
+    .sky {
+      position: absolute;
+      inset: 0;
+      transition: background 1.2s ease;
+    }
+
+    /* 日期天气 */
+    .date-weather {
+      position: absolute;
+      top: 32px;
+      left: 40px;
+      color: rgba(255,255,255,0.95);
+      z-index: 5;
+    }
+    .date-main {
+      font-size: 56px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -2px;
+      text-shadow: 0 3px 16px rgba(0,0,0,0.35);
+    }
+    .date-sub {
+      font-size: 13px;
+      margin-top: 6px;
+      opacity: 0.75;
+      letter-spacing: 2px;
+    }
+    .date-special {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 3px 12px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 12px;
+      font-size: 12px;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.88);
+      backdrop-filter: blur(8px);
+    }
+    .weather-row {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      opacity: 0.88;
+    }
+    .weather-icon { font-size: 22px; }
+
+    /* 名言区 */
+    .quote-box {
+      position: absolute;
+      left: 40px;
+      right: 40px;
+      top: 50%;
+      transform: translateY(-50%);
+      text-align: center;
+      z-index: 5;
+    }
+    .quote-deco {
+      font-size: 80px;
+      color: rgba(255,255,255,0.12);
+      line-height: 0.5;
+      margin-bottom: 12px;
+      font-family: Georgia, serif;
+    }
+    .quote-text {
+      font-size: 22px;
+      font-weight: 500;
+      color: #fff;
+      line-height: 1.9;
+      text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+      letter-spacing: 1px;
+    }
+    .quote-author {
+      margin-top: 20px;
+      font-size: 14px;
+      color: rgba(255,235,180,0.9);
+      letter-spacing: 2.5px;
+      font-weight: 500;
+    }
+    .quote-author::before { content: '\2014\2014 '; }
+
+    /* 分割线 */
+    .divider {
+      position: relative;
+      z-index: 5;
+      text-align: center;
+      padding: 10px 0;
+    }
+    .divider-dots {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .divider-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+    }
+    .divider-dots span:nth-child(2) { background: rgba(255,255,255,0.5); }
+
+    /* 心情日记区 */
+    .diary-section {
+      background: rgba(255,255,255,0.96);
+      padding: 28px 40px 36px;
+      flex-shrink: 0;
+    }
+    .diary-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #2d2d2d;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .diary-title-bar {
+      width: 4px;
+      height: 18px;
+      border-radius: 2px;
+    }
+    .mood-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .mood-btn {
+      flex: 1;
+      min-width: 70px;
+      max-width: 110px;
+      padding: 12px 4px;
+      border: 2px solid #e8e8e8;
+      border-radius: 16px;
+      background: #fafafa;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.25s ease;
+      font-size: 13px;
+      color: #888;
+      user-select: none;
+    }
+    .mood-btn .emoji { font-size: 28px; display: block; margin-bottom: 5px; }
+    .mood-btn:hover { transform: translateY(-2px); }
+    .mood-btn.active {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    }
+
+    .diary-input-wrap {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeUp 0.35s ease;
+    }
+    .diary-input-wrap.show { display: flex; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .diary-label { font-size: 13px; color: #999; }
+    textarea#diaryText {
+      width: 100%;
+      min-height: 100px;
+      padding: 14px 16px;
+      border: 1.5px solid #e8e8e8;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.75;
+      color: #333;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+      background: #fafafa;
+      transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+    }
+    textarea#diaryText::placeholder { color: #c0c0c0; }
+    textarea#diaryText:focus {
+      border-color: #c8700a;
+      box-shadow: 0 0 0 4px rgba(200,112,10,0.1);
+      background: #fff;
+    }
+    .btn-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .save-btn {
+      padding: 10px 28px;
+      color: #fff;
+      border: none;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      background: linear-gradient(135deg, #e8960a, #c8700a);
+    }
+    .save-btn:hover { opacity: 0.88; transform: scale(1.04); }
+    .save-btn:active { transform: scale(0.97); }
+    .char-count { font-size: 12px; color: #c0c0c0; }
+    .saved-toast {
+      display: none;
+      font-size: 13px;
+      color: #888;
+      text-align: center;
+      padding: 8px;
+      animation: fadeUp 0.3s ease;
+    }
+
+    /* 昨日回顾 */
+    .yesterday-banner {
+      display: none;
+      margin-top: 20px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #f8f8f8, #f0f0f0);
+      border-radius: 16px;
+      border-left: 4px solid #ccc;
+      animation: fadeUp 0.4s ease;
+    }
+    .yesterday-banner.show { display: block; }
+    .yesterday-banner-title {
+      font-size: 12px;
+      color: #aaa;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+    }
+    .yesterday-banner-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .yesterday-mood-emoji { font-size: 24px; }
+    .yesterday-mood-text { font-size: 14px; color: #555; font-weight: 500; }
+    .yesterday-diary-text {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #888;
+      line-height: 1.65;
+      white-space: pre-wrap;
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 20px;
+      right: 40px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 2px;
+      z-index: 5;
+    }
+
+    .history-btn {
+      position: absolute;
+      top: 32px;
+      right: 40px;
+      padding: 8px 18px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 20px;
+      color: rgba(255,255,255,0.8);
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 5;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s;
+    }
+    .history-btn:hover { background: rgba(255,255,255,0.22); }
+
+    .history-panel {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(6px);
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .history-panel.show { display: flex; }
+    .history-inner {
+      background: #fff;
+      border-radius: 20px;
+      padding: 28px 30px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .history-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .history-head h2 { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+    .close-btn {
+      width: 32px; height: 32px;
+      border: none;
+      background: #f0f0f0;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+      transition: background 0.2s;
+    }
+    .close-btn:hover { background: #e0e0e0; }
+    .history-item { padding: 14px 0; border-bottom: 1px solid #f0f0f0; }
+    .history-item:last-child { border-bottom: none; }
+    .history-date { font-size: 12px; color: #999; margin-bottom: 4px; }
+    .history-mood-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #333;
+    }
+    .history-text {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.6;
+    }
+    .history-empty {
+      text-align: center;
+      color: #bbb;
+      font-size: 14px;
+      padding: 40px 0;
+    }
+
+    @media (max-width: 640px) {
+      .date-weather { top: 24px; left: 24px; }
+      .date-main { font-size: 42px; }
+      .quote-box { left: 24px; right: 24px; }
+      .quote-text { font-size: 18px; }
+      .diary-section { padding: 24px 24px 32px; }
+      .history-btn { top: 24px; right: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card" id="mainCard">
+  <div class="hero" id="heroArea">
+    <div class="sky" id="skyLayer"></div>
+    <div class="date-weather" id="dateWeather">
+      <div class="date-main" id="dateMain">--</div>
+      <div class="date-sub" id="dateSub">----</div>
+      <div class="date-special" id="dateSpecial" style="display:none;"></div>
+      <div class="weather-row">
+        <span class="weather-icon" id="weatherIcon">☀️</span>
+        <span id="weatherText">好天气，适合记录生活</span>
+      </div>
+    </div>
+    <button class="history-btn" onclick="openHistory()">📋 历史日记</button>
+    <div class="quote-box">
+      <div class="quote-deco">"</div>
+      <div class="quote-text" id="quoteText">载入中...</div>
+      <div class="quote-author" id="quoteAuthor"></div>
+    </div>
+    <div class="divider">
+      <div class="divider-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div class="footer" id="footerDate">日签</div>
+  </div>
+
+  <div class="diary-section">
+    <div class="diary-title">
+      <div class="diary-title-bar" id="titleBar"></div>
+      今日心情日记
+    </div>
+    <div class="mood-row" id="moodRow">
+      <button class="mood-btn" data-mood="开心" data-emoji="😄" onclick="selectMood(this)">
+        <span class="emoji">😄</span>开心
+      </button>
+      <button class="mood-btn" data-mood="平静" data-emoji="😌" onclick="selectMood(this)">
+        <span class="emoji">😌</span>平静
+      </button>
+      <button class="mood-btn" data-mood="生气" data-emoji="😠" onclick="selectMood(this)">
+        <span class="emoji">😠</span>生气
+      </button>
+      <button class="mood-btn" data-mood="郁闷" data-emoji="😔" onclick="selectMood(this)">
+        <span class="emoji">😔</span>郁闷
+      </button>
+      <button class="mood-btn" data-mood="难过" data-emoji="😢" onclick="selectMood(this)">
+        <span class="emoji">😢</span>难过
+      </button>
+    </div>
+    <div class="diary-input-wrap" id="diaryWrap">
+      <div class="diary-label" id="diaryLabel">选择心情，记录这一天</div>
+      <textarea id="diaryText" placeholder="今天发生了什么？写下此刻的感受吧 ✍️" oninput="updateCharCount(this)"></textarea>
+      <div class="btn-row">
+        <span class="char-count" id="charCount">0 / 500</span>
+        <button class="save-btn" id="saveBtn" onclick="saveDiary()">💾 保存日记</button>
+      </div>
+    </div>
+    <div class="saved-toast" id="savedToast">✅ 已保存，继续加油！</div>
+
+    <!-- 昨日回顾 -->
+    <div class="yesterday-banner" id="yesterdayBanner">
+      <div class="yesterday-banner-title">🕰️ 昨日回顾</div>
+      <div class="yesterday-banner-content">
+        <span class="yesterday-mood-emoji" id="yesterdayEmoji"></span>
+        <span class="yesterday-mood-text" id="yesterdayMood"></span>
+      </div>
+      <div class="yesterday-diary-text" id="yesterdayText"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 历史日记面板 -->
+<div class="history-panel" id="historyPanel" onclick="closeHistoryOutside(event)">
+  <div class="history-inner">
+    <div class="history-head">
+      <h2>📖 历史心情日记</h2>
+      <button class="close-btn" onclick="closeHistory()">✕</button>
+    </div>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<script>
+// ====================================================
+// 名言数据库
+// ====================================================
+var QUOTES = [
+  { text: "世界上只有一种真正的英雄主义，那就是在认清生活真相之后依然热爱生活。", author: "罗曼·罗兰" },
+  { text: "生命不是要超越别人，而是要超越昨天的自己。", author: "爱默生" },
+  { text: "成功不是偶然的，它是热情、坚持、计划、专注、努力与奉献的共同结果。", author: "科林·鲍威尔" },
+  { text: "你所浪费的今天，是昨天死去的人奢望的明天。", author: "马克·吐温" },
+  { text: "不要等待机会，而要创造机会。", author: "林肯" },
+  { text: "即使慢，驰而不息，纵会落后，纵会失败，但必须能够到达他所向往的目标。", author: "鲁迅" },
+  { text: "人生最大的失败，不是失败本身，而是从未尝试。", author: "西奥多·罗斯福" },
+  { text: "不积跬步，无以至千里；不积小流，无以成江海。", author: "荀子" },
+  { text: "每一个不曾起舞的日子，都是对生命的辜负。", author: "尼采" },
+  { text: "把每一个平凡的日子，活成不平凡的诗。", author: "泰戈尔" },
+  { text: "你今天所吃的苦，都是为了铺路，走向更开阔的远方。", author: "村上春树" },
+  { text: "困难是上天给我们最好的礼物，因为它让我们变得更强大。", author: "海伦·凯勒" },
+  { text: "一个人能做到的，远比他自己以为的要多得多。", author: "维克多·雨果" },
+  { text: "种一棵树最好的时间是十年前，其次是现在。", author: "中国谚语" }
+];
+
+var HOLIDAYS = {
+  "01-01": { name: "元旦" },
+  "02-14": { name: "情人节" },
+  "03-08": { name: "妇女节" },
+  "05-01": { name: "劳动节" },
+  "06-01": { name: "儿童节" },
+  "10-01": { name: "国庆节" },
+  "12-25": { name: "圣诞节" }
+};
+
+var THEMES = [
+  // 0: 日出暖橙
+  { sky: "linear-gradient(170deg, #1a0533, #7b2d5b, #e8753a, #ffcc5c, #fff9e6)", accent: "#e8753a", accentGrad: "linear-gradient(135deg,#f4a340,#e8753a)", moodActive: "#fff8f0", moodBorder: "#e8753a", moodColor: "#d06020" },
+  // 1: 星空深蓝
+  { sky: "linear-gradient(160deg, #0f2027, #203a43, #2c5364)", accent: "#667eea", accentGrad: "linear-gradient(135deg,#667eea,#764ba2)", moodActive: "#f0f0ff", moodBorder: "#667eea", moodColor: "#4a4aff" },
+  // 2: 暮色紫红
+  { sky: "linear-gradient(180deg, #0d0d2b, #3d1f5e, #b04070, #f0908a, #fff0e0)", accent: "#b04070", accentGrad: "linear-gradient(135deg,#e06070,#b04070)", moodActive: "#fff0f5", moodBorder: "#b04070", moodColor: "#903060" },
+  // 3: 翠绿山林
+  { sky: "linear-gradient(180deg, #0a1628, #0f4060, #1a6060, #3a8040, #6aa050, #b0d080)", accent: "#287050", accentGrad: "linear-gradient(135deg,#3a8040,#287050)", moodActive: "#f0fff5", moodBorder: "#287050", moodColor: "#1a6040" },
+  // 4: 金色麦田
+  { sky: "linear-gradient(180deg, #1a0a00, #5a2800, #c8700a, #f5c030, #fff8d0)", accent: "#c8700a", accentGrad: "linear-gradient(135deg,#e8960a,#c8700a)", moodActive: "#fffcf0", moodBorder: "#c8700a", moodColor: "#a05a00" },
+  // 5: 冬日雪原
+  { sky: "linear-gradient(180deg, #0a0f1e, #1a3055, #4a6898, #c0d5e8, #e8f3fa)", accent: "#2a4878", accentGrad: "linear-gradient(135deg,#4a6898,#2a4878)", moodActive: "#f0f5ff", moodBorder: "#2a4878", moodColor: "#1a3860" },
+  // 6: 粉色晨霭
+  { sky: "linear-gradient(180deg, #1a0a1a, #5a2a55, #c07080, #f0c0b8, #fff5f0)", accent: "#c07080", accentGrad: "linear-gradient(135deg,#e09898,#c07080)", moodActive: "#fff5fa", moodBorder: "#c07080", moodColor: "#a05868" }
+];
+
+var now = new Date();
+var WEEKDAYS_EN = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
+var MONTHS_ZH = ["一","二","三","四","五","六","七","八","九","十","十一","十二"];
+
+function pad(n) { return n < 10 ? "0" + n : "" + n; }
+function getTodayKey() {
+  return now.getFullYear() + "-" + pad(now.getMonth()+1) + "-" + pad(now.getDate());
+}
+function getYesterdayKey() {
+  var d = new Date(now.getTime() - 86400000);
+  return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
+}
+function getDayIndex() {
+  var y = now.getFullYear(), m = now.getMonth()+1, d = now.getDate();
+  return (y * 10000 + m * 100 + d) % QUOTES.length;
+}
+function getThemeIndex() { return now.getDay(); }
+
+// ====================================================
+// 初始化
+// ====================================================
+function init() {
+  try {
+    var theme = THEMES[getThemeIndex()] || THEMES[0];
+    var quote = QUOTES[getDayIndex()] || QUOTES[0];
+
+    // 天空背景
+    var sky = document.getElementById("skyLayer");
+    if (sky) sky.style.background = theme.sky;
+
+    // 日期
+    var dm = document.getElementById("dateMain");
+    if (dm) dm.textContent = pad(now.getMonth()+1) + "." + pad(now.getDate());
+    var ds = document.getElementById("dateSub");
+    if (ds) ds.textContent = now.getFullYear() + " · " + WEEKDAYS_EN[now.getDay()] + " · " + MONTHS_ZH[now.getMonth()] + "月";
+
+    // 节日
+    var mmdd = pad(now.getMonth()+1) + "-" + pad(now.getDate());
+    var holiday = HOLIDAYS[mmdd];
+    if (holiday) {
+      var sp = document.getElementById("dateSpecial");
+      if (sp) { sp.textContent = "🎈 " + holiday.name; sp.style.display = "inline-block"; }
+    }
+
+    // 天气（按季节）
+    var seasonWeather = [
+      { icon: "🌸", text: "春暖花开" }, { icon: "☀️", text: "阳光明媚" }, { icon: "🌧️", text: "春雨绵绵" }
+    ];
+    var m = now.getMonth() + 1;
+    if (m >= 6 && m <= 8) seasonWeather = [
+      { icon: "☀️", text: "烈日当头" }, { icon: "⛈️", text: "雷雨交加" }, { icon: "🌤️", text: "夏风清爽" }
+    ];
+    if (m >= 9 && m <= 11) seasonWeather = [
+      { icon: "🍂", text: "秋高气爽" }, { icon: "🌫️", text: "秋雾迷蒙" }, { icon: "🌤️", text: "金秋时节" }
+    ];
+    if (m === 12 || m <= 2) seasonWeather = [
+      { icon: "❄️", text: "寒风凛冽" }, { icon: "⛄", text: "雪花飘落" }, { icon: "🌤️", text: "冬阳暖照" }
+    ];
+    var widx = now.getDate() % seasonWeather.length;
+    var weatherIcon = document.getElementById("weatherIcon");
+    var weatherText = document.getElementById("weatherText");
+    if (weatherIcon) weatherIcon.textContent = seasonWeather[widx].icon;
+    if (weatherText) weatherText.textContent = holiday ? (holiday.name + " · " + seasonWeather[widx].text) : seasonWeather[widx].text;
+
+    // 名言
+    var qt = document.getElementById("quoteText");
+    var qa = document.getElementById("quoteAuthor");
+    if (qt) qt.textContent = quote.text;
+    if (qa) qa.textContent = quote.author;
+
+    // 底部
+    var ft = document.getElementById("footerDate");
+    if (ft) ft.textContent = "日签 · " + now.getFullYear() + "." + pad(now.getMonth()+1) + "." + pad(now.getDate());
+
+    // 配色
+    applyThemeColors(theme);
+
+    // 恢复日记
+    restoreDiary();
+  } catch(e) {
+    console.error("init error:", e);
+    // 保底：至少显示一句名言
+    var qt2 = document.getElementById("quoteText");
+    var qa2 = document.getElementById("quoteAuthor");
+    if (qt2) qt2.textContent = "每一个不曾起舞的日子，都是对生命的辜负。";
+    if (qa2) qa2.textContent = "尼采";
+  }
+}
+
+function applyThemeColors(theme) {
+  var tb = document.getElementById("titleBar");
+  if (tb) tb.style.background = theme.accentGrad;
+  var sb = document.getElementById("saveBtn");
+  if (sb) sb.style.background = theme.accentGrad;
+  window._theme = theme;
+
+  // 心情按钮 hover
+  document.querySelectorAll(".mood-btn").forEach(function(btn) {
+    btn.onmouseenter = function() {
+      if (!this.classList.contains("active")) {
+        this.style.borderColor = theme.moodBorder;
+        this.style.background = theme.moodActive;
+      }
+    };
+    btn.onmouseleave = function() {
+      if (!this.classList.contains("active")) {
+        this.style.borderColor = "#e8e8e8";
+        this.style.background = "#fafafa";
+      }
+    };
+  });
+}
+
+// ====================================================
+// 心情日记
+// ====================================================
+var _selectedMood = "";
+
+function selectMood(btn) {
+  document.querySelectorAll(".mood-btn").forEach(function(b) {
+    b.classList.remove("active");
+    b.style.borderColor = "#e8e8e8";
+    b.style.background = "#fafafa";
+    b.style.color = "#888";
+    b.style.transform = "none";
+    b.style.boxShadow = "none";
+  });
+  btn.classList.add("active");
+  var theme = window._theme || THEMES[0];
+  btn.style.borderColor = theme.moodBorder;
+  btn.style.background = theme.moodActive;
+  btn.style.color = theme.moodColor;
+  btn.style.transform = "translateY(-3px)";
+  btn.style.boxShadow = "0 4px 14px rgba(0,0,0,0.12)";
+
+  _selectedMood = btn.dataset.mood;
+  var wrap = document.getElementById("diaryWrap");
+  if (wrap) wrap.classList.add("show");
+  var label = document.getElementById("diaryLabel");
+  if (label) label.textContent = "今天心情：" + _selectedMood + " — 写下今天的故事";
+  var ta = document.getElementById("diaryText");
+  if (ta) ta.focus();
+
+  // 隐藏昨日回顾
+  var banner = document.getElementById("yesterdayBanner");
+  if (banner) banner.classList.remove("show");
+}
+
+function updateCharCount(ta) {
+  var len = ta.value.length;
+  var cc = document.getElementById("charCount");
+  if (cc) cc.textContent = len + " / 500";
+  if (len > 500) ta.value = ta.value.slice(0, 500);
+}
+
+function saveDiary() {
+  if (!_selectedMood) { alert("请先选择今天的心情 😊"); return; }
+  var text = document.getElementById("diaryText").value.trim();
+  var key = getTodayKey();
+  var record = { mood: _selectedMood, text: text, savedAt: new Date().toISOString() };
+  try {
+    var history = JSON.parse(localStorage.getItem("diaryHistory") || "{}");
+    history[key] = record;
+    localStorage.setItem("diaryHistory", JSON.stringify(history));
+    showToast();
+  } catch(e) { alert("保存失败，请检查浏览器设置"); }
+}
+
+function showToast() {
+  var toast = document.getElementById("savedToast");
+  if (!toast) return;
+  toast.style.display = "block";
+  setTimeout(function() { toast.style.display = "none"; }, 2800);
+}
+
+function restoreDiary() {
+  try {
+    var history = JSON.parse(localStorage.getItem("diaryHistory") || "{}");
+    var key = getTodayKey();
+    var ykey = getYesterdayKey();
+
+    if (history[key]) {
+      // 今日已有记录
+      var r = history[key];
+      var btn = document.querySelector('.mood-btn[data-mood="' + r.mood + '"]');
+      if (btn) selectMood(btn);
+      if (r.text) {
+        var ta = document.getElementById("diaryText");
+        if (ta) { ta.value = r.text; updateCharCount(ta); }
+      }
+    } else if (history[ykey]) {
+      // 今日无记录 → 显示昨日回顾
+      showYesterdayBanner(history[ykey]);
+    }
+  } catch(e) {}
+}
+
+function showYesterdayBanner(record) {
+  var MOOD_EMOJI = { "开心": "😄", "平静": "😌", "生气": "😠", "郁闷": "😔", "难过": "😢" };
+  var banner = document.getElementById("yesterdayBanner");
+  var emoji = document.getElementById("yesterdayEmoji");
+  var mood = document.getElementById("yesterdayMood");
+  var text = document.getElementById("yesterdayText");
+  if (emoji) emoji.textContent = MOOD_EMOJI[record.mood] || "📝";
+  if (mood) mood.textContent = record.mood;
+  if (text && record.text) text.textContent = record.text;
+  if (banner) {
+    var theme = window._theme;
+    if (theme) {
+      banner.style.borderLeftColor = theme.moodBorder;
+      banner.style.background = theme.moodActive;
+    }
+    banner.classList.add("show");
+  }
+}
+
+// ====================================================
+// 历史面板
+// ====================================================
+function openHistory() {
+  var panel = document.getElementById("historyPanel");
+  if (panel) panel.classList.add("show");
+  renderHistory();
+}
+function closeHistory() {
+  var panel = document.getElementById("historyPanel");
+  if (panel) panel.classList.remove("show");
+}
+function closeHistoryOutside(e) {
+  if (e.target === document.getElementById("historyPanel")) closeHistory();
+}
+function renderHistory() {
+  var list = document.getElementById("historyList");
+  if (!list) return;
+  list.innerHTML = "";
+  try {
+    var history = JSON.parse(localStorage.getItem("diaryHistory") || "{}");
+    var keys = Object.keys(history).sort().reverse();
+    if (keys.length === 0) {
+      list.innerHTML = '<div class="history-empty">📝 暂无历史日记，从今天开始记录吧</div>';
+      return;
+    }
+    var MOOD_EMOJI = { "开心": "😄", "平静": "😌", "生气": "😠", "郁闷": "😔", "难过": "😢" };
+    keys.forEach(function(key) {
+      var r = history[key];
+      if (!r) return;
+      var parts = key.split("-");
+      var dateStr = parts[0] + "年" + parseInt(parts[1]) + "月" + parseInt(parts[2]) + "日";
+      var div = document.createElement("div");
+      div.className = "history-item";
+      div.innerHTML =
+        '<div class="history-date">' + dateStr + '</div>' +
+        '<div class="history-mood-row"><span>' + (MOOD_EMOJI[r.mood]||"") + '</span><span>' + (r.mood||"") + '</span></div>' +
+        (r.text ? '<div class="history-text">' + escHtml(r.text) + '</div>' : '');
+      list.appendChild(div);
+    });
+  } catch(e) { list.innerHTML = '<div class="history-empty">读取失败</div>'; }
+}
+function escHtml(s) {
+  return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// 启动
+init();
+</script>
+</body>
+</html>
